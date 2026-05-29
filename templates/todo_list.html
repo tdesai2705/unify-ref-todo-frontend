@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Todos{% endblock %}
+
+{% block content %}
+<div class="todo-app">
+    <!-- Statistics Sidebar -->
+    <aside class="stats-sidebar">
+        <h2>📊 Statistics</h2>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.total or 0 }}</div>
+            <div class="stat-label">Total Tasks</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.completed or 0 }}</div>
+            <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.pending or 0 }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.completion_rate or 0 }}%</div>
+            <div class="stat-label">Completion Rate</div>
+        </div>
+
+        {% if stats.by_priority %}
+        <div class="priority-breakdown">
+            <h3>By Priority</h3>
+            <div class="priority-stat">
+                <span class="priority-badge priority-high">High</span>
+                <span>{{ stats.by_priority.high or 0 }}</span>
+            </div>
+            <div class="priority-stat">
+                <span class="priority-badge priority-medium">Medium</span>
+                <span>{{ stats.by_priority.medium or 0 }}</span>
+            </div>
+            <div class="priority-stat">
+                <span class="priority-badge priority-low">Low</span>
+                <span>{{ stats.by_priority.low or 0 }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Feature Flags Info -->
+        <div class="feature-flags">
+            <h3>🚩 Feature Flags</h3>
+            <div class="flag-status">
+                <span class="flag-name">Due Date:</span>
+                <span class="flag-value {% if feature_due_date %}flag-on{% else %}flag-off{% endif %}">
+                    {{ 'ON' if feature_due_date else 'OFF' }}
+                </span>
+            </div>
+            <div class="flag-status">
+                <span class="flag-name">Dark Mode:</span>
+                <span class="flag-value {% if feature_dark_mode %}flag-on{% else %}flag-off{% endif %}">
+                    {{ 'ON' if feature_dark_mode else 'OFF' }}
+                </span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Filters -->
+        <div class="filters">
+            <h2>🔍 Filters</h2>
+            <form method="get" class="filter-form">
+                <select name="completed" onchange="this.form.submit()">
+                    <option value="">All Status</option>
+                    <option value="false" {% if current_filter.completed == 'false' %}selected{% endif %}>Pending</option>
+                    <option value="true" {% if current_filter.completed == 'true' %}selected{% endif %}>Completed</option>
+                </select>
+
+                <select name="priority" onchange="this.form.submit()">
+                    <option value="">All Priorities</option>
+                    <option value="high" {% if current_filter.priority == 'high' %}selected{% endif %}>High</option>
+                    <option value="medium" {% if current_filter.priority == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="low" {% if current_filter.priority == 'low' %}selected{% endif %}>Low</option>
+                </select>
+
+                <input type="text" name="category" placeholder="Category" value="{{ current_filter.category or '' }}" />
+
+                <button type="submit" class="btn btn-secondary">Apply</button>
+                <a href="{{ url_for('main.todo_list') }}" class="btn btn-secondary">Clear</a>
+            </form>
+        </div>
+
+        <!-- Add Todo Form -->
+        <div class="add-todo-form">
+            <h2>➕ Add New Todo</h2>
+            <form method="post" action="{{ url_for('main.add_todo') }}">
+                <div class="form-row">
+                    <input type="text" name="title" placeholder="What needs to be done?" required class="form-input-large" />
+                </div>
+
+                <div class="form-row">
+                    <textarea name="description" placeholder="Description (optional)" rows="2"></textarea>
+                </div>
+
+                <div class="form-row form-row-multi">
+                    <select name="priority" required>
+                        <option value="medium">Medium Priority</option>
+                        <option value="high">High Priority</option>
+                        <option value="low">Low Priority</option>
+                    </select>
+
+                    <input type="text" name="category" placeholder="Category (optional)" />
+
+                    {% if feature_due_date %}
+                    <input type="date" name="due_date" placeholder="Due Date" />
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-primary">Add Todo</button>
+            </form>
+        </div>
+
+        <!-- Todo List -->
+        <div class="todo-list">
+            <h2>📋 Your Todos</h2>
+
+            {% if todos %}
+                {% for todo in todos %}
+                <div class="todo-item {% if todo.completed %}todo-completed{% endif %} priority-{{ todo.priority }}">
+                    <div class="todo-checkbox">
+                        <form method="post" action="{{ url_for('main.toggle_todo', todo_id=todo.id) }}" style="margin: 0;">
+                            <button type="submit" class="checkbox-btn">
+                                {% if todo.completed %}✓{% else %}○{% endif %}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="todo-content">
+                        <div class="todo-header">
+                            <h3 class="todo-title">{{ todo.title }}</h3>
+                            <span class="priority-badge priority-{{ todo.priority }}">{{ todo.priority }}</span>
+                        </div>
+
+                        {% if todo.description %}
+                        <p class="todo-description">{{ todo.description }}</p>
+                        {% endif %}
+
+                        <div class="todo-meta">
+                            {% if todo.category %}
+                            <span class="meta-tag">🏷️ {{ todo.category }}</span>
+                            {% endif %}
+
+                            {% if feature_due_date and todo.due_date %}
+                            <span class="meta-tag">📅 {{ todo.due_date[:10] }}</span>
+                            {% endif %}
+
+                            <span class="meta-tag">🕐 {{ todo.created_at[:10] }}</span>
+                        </div>
+                    </div>
+
+                    <div class="todo-actions">
+                        <form method="post" action="{{ url_for('main.delete_todo', todo_id=todo.id) }}" style="margin: 0;" onsubmit="return confirm('Delete this todo?');">
+                            <button type="submit" class="btn-delete">🗑️</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <p>No todos found. Add your first task above!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
