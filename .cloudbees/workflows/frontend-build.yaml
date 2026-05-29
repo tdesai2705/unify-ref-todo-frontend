@@ -21,7 +21,6 @@ jobs:
         with:
           image: python:3.11
           run: |
-            cd frontend
             pip install Flask Jinja2
             python -m py_compile app/*.py
       - name: CSS/JS linting
@@ -29,7 +28,7 @@ jobs:
         with:
           image: node:18
           run: |
-            cd frontend/static
+            cd static
             echo "Linting CSS and JavaScript files..."
             # Add CSS/JS linting here if needed
   security-scan:
@@ -41,15 +40,17 @@ jobs:
         uses: cloudbees-io/sast-scan@v1
         with:
           language: python
-          source-path: frontend/
+          source-path: .
+
       - name: SCA Scan
         uses: cloudbees-io/sca-scan@v1
         with:
-          manifest-file: frontend/requirements.txt
+          manifest-file: requirements.txt
+
       - name: Secret Scan
         uses: cloudbees-io/secret-scan@v1
         with:
-          source-path: frontend/
+          source-path: .
   build:
     needs:
       - test
@@ -66,8 +67,8 @@ jobs:
       - name: Build and push Docker image
         uses: cloudbees-io/docker-build-push@v1
         with:
-          context: frontend/
-          dockerfile: frontend/Dockerfile
+          context: .
+          dockerfile: Dockerfile
           push: true
           tags: |
             ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
