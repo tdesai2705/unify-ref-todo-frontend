@@ -4,6 +4,12 @@ import os
 
 bp = Blueprint('main', __name__)
 
+@bp.route('/health')
+def health_check():
+    """Health check endpoint for Kubernetes probes"""
+    from flask import jsonify
+    return jsonify({'status': 'healthy', 'service': 'todo-frontend'}), 200
+
 def get_backend_url():
     """Get backend API URL from config"""
     return current_app.config['BACKEND_API_URL']
