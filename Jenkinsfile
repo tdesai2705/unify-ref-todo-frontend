@@ -20,6 +20,12 @@ spec:
     image: docker:24-dind
     securityContext:
       privileged: true
+    args:
+    - --host=tcp://0.0.0.0:2375
+    - --tls=false
+    env:
+    - name: DOCKER_TLS_CERTDIR
+      value: ""
     volumeMounts:
     - name: docker-socket
       mountPath: /var/run
@@ -55,8 +61,6 @@ spec:
 
         BRANCH_NAME_CLEAN = "${env.BRANCH_NAME.replaceAll('/', '-')}"
         IMAGE_TAG = "${BRANCH_NAME_CLEAN}-${BUILD_NUMBER}"
-
-        INFRA_REPO = 'https://github.com/tdesai2705/unify-ref-todo-infrastructure.git'
     }
 
     stages {
@@ -90,7 +94,7 @@ spec:
                     echo "🧪 Installing dependencies and running tests..."
                     sh """
                         pip install --no-cache-dir -r requirements.txt
-                        echo "Tests would run here - pytest, unit tests, integration tests"
+                        echo "Tests would run here - pytest etc."
                     """
                 }
             }
@@ -128,10 +132,9 @@ spec:
                 container('python') {
                     echo "📝 Updating infrastructure repo with new image tag..."
                     script {
-                        withCredentials([usernamePassword(
-                            credentialsId: 'github-credentials',
-                            usernameVariable: 'GIT_USER',
-                            passwordVariable: 'GIT_PASS'
+                        withCredentials([string(
+                            credentialsId: 'github-pat',
+                            variable: 'GITHUB_TOKEN'
                         )]) {
                             sh """
                                 # Install git
@@ -141,8 +144,8 @@ spec:
                                 git config --global user.email "ci@cloudbees.com"
                                 git config --global user.name "CloudBees CI"
 
-                                # Clone infrastructure repo
-                                git clone https://\${GIT_USER}:\${GIT_PASS}@github.com/tdesai2705/unify-ref-todo-infrastructure.git infra
+                                # Clone infrastructure repo via HTTPS with PAT
+                                git clone https://\$GITHUB_TOKEN@github.com/tdesai2705/unify-ref-todo-infrastructure.git infra
                                 cd infra
 
                                 # Determine environment based on branch
