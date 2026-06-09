@@ -74,7 +74,8 @@ def todo_list():
     except requests.exceptions.RequestException as e:
         flash(f'Error connecting to backend: {str(e)}', 'error')
         return render_template('todo_list.html', todos=[], stats={},
-                             feature_due_date=False, feature_dark_mode=False)
+                             feature_due_date=False, feature_dark_mode=False,
+                             current_filter={'completed': None, 'priority': None, 'category': None})
 
 @bp.route('/todos/add', methods=['POST'])
 def add_todo():
