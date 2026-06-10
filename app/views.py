@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 import requests
 import os
+from app.feature_flags import flags
 
 bp = Blueprint('main', __name__)
 
@@ -15,14 +16,12 @@ def get_backend_url():
     return current_app.config['BACKEND_API_URL']
 
 def check_feature_flag(flag_name, user_id=None):
-    """Check if a feature flag is enabled (Cask integration placeholder)"""
-    # TODO: Integrate with CloudBees Feature Management (Cask)
-    # For now, return default values
-    feature_flags = {
-        'due-date-feature': os.getenv('FEATURE_DUE_DATE', 'false').lower() == 'true',
-        'dark-mode': os.getenv('FEATURE_DARK_MODE', 'false').lower() == 'true'
-    }
-    return feature_flags.get(flag_name, False)
+    """Check if a feature flag is enabled via CloudBees Feature Management (Cask)"""
+    if flag_name == 'due-date-feature':
+        return flags.due_date_feature.is_enabled()
+    if flag_name == 'dark-mode':
+        return flags.dark_mode.is_enabled()
+    return False
 
 @bp.route('/')
 def index():

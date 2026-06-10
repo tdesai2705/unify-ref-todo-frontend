@@ -15,4 +15,8 @@ def create_app():
     from app.views import bp
     app.register_blueprint(bp)
 
+    # Initialize CloudBees Feature Management (Cask) SDK
+    from app.feature_flags import setup as setup_flags
+    setup_flags(app.config['CASK_API_KEY'])
+
     return app

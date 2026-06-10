@@ -137,8 +137,10 @@ def test_delete_todo_backend_error(client):
         assert response.status_code == 302
 
 
-def test_feature_flag_env_var_off(client):
-    with patch.dict(os.environ, {'FEATURE_DUE_DATE': 'false', 'FEATURE_DARK_MODE': 'false'}):
+def test_feature_flags_disabled(client):
+    with patch('app.views.flags') as mock_flags:
+        mock_flags.due_date_feature.is_enabled.return_value = False
+        mock_flags.dark_mode.is_enabled.return_value = False
         with patch('app.views.requests.get') as mock_get:
             mock_get.side_effect = [
                 make_mock_response(MOCK_TODOS),
@@ -148,8 +150,10 @@ def test_feature_flag_env_var_off(client):
             assert response.status_code == 200
 
 
-def test_feature_flag_env_var_on(client):
-    with patch.dict(os.environ, {'FEATURE_DUE_DATE': 'true', 'FEATURE_DARK_MODE': 'true'}):
+def test_feature_flags_enabled(client):
+    with patch('app.views.flags') as mock_flags:
+        mock_flags.due_date_feature.is_enabled.return_value = True
+        mock_flags.dark_mode.is_enabled.return_value = True
         with patch('app.views.requests.get') as mock_get:
             mock_get.side_effect = [
                 make_mock_response(MOCK_TODOS),
