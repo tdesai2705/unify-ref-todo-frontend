@@ -42,6 +42,25 @@
         </div>
         {% endif %}
 
+        {% if 'overdue_count' in stats %}
+        <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+            <div class="stat-number" style="color: #f59e0b;">{{ stats.overdue_count }}</div>
+            <div class="stat-label">Overdue Tasks</div>
+        </div>
+        {% endif %}
+
+        {% if 'by_category' in stats and stats.by_category %}
+        <div class="priority-breakdown">
+            <h3>By Category</h3>
+            {% for category, count in stats.by_category.items() %}
+            <div class="priority-stat">
+                <span class="meta-tag">🏷️ {{ category }}</span>
+                <span>{{ count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- Feature Flags Info -->
         <div class="feature-flags">
             <h3>🚩 Feature Flags</h3>
@@ -55,6 +74,12 @@
                 <span class="flag-name">Dark Mode:</span>
                 <span class="flag-value {% if feature_dark_mode %}flag-on{% else %}flag-off{% endif %}">
                     {{ 'ON' if feature_dark_mode else 'OFF' }}
+                </span>
+            </div>
+            <div class="flag-status">
+                <span class="flag-name">Enhanced Stats:</span>
+                <span class="flag-value {% if 'overdue_count' in stats %}flag-on{% else %}flag-off{% endif %}">
+                    {{ 'ON' if 'overdue_count' in stats else 'OFF' }}
                 </span>
             </div>
         </div>
