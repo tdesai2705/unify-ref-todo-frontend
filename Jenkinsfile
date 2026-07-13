@@ -45,6 +45,10 @@ spec:
         }
     }
 
+    parameters {
+        booleanParam(name: 'SMART_TESTS_OBSERVATION', defaultValue: false, description: 'Observation mode (run all tests) vs subset mode (predictive test selection)')
+    }
+
     options {
         buildDiscarder(logRotator(
             numToKeepStr: '10',
@@ -124,22 +128,44 @@ spec:
             steps {
                 container('python') {
                     withCredentials([string(credentialsId: 'SMART_TESTS_TOKEN', variable: 'SMART_TESTS_TOKEN')]) {
-                        sh """
-                            mkdir -p test-results
+                        script {
+                            def obsFlag = params.SMART_TESTS_OBSERVATION ? '--observation' : ''
+                            sh """
+                                mkdir -p test-results
 
-                            SESSION=\$(smart-tests record session --build ${BUILD_NUMBER} --test-suite todo-frontend-tests)
-                            echo "Smart Tests session: \$SESSION"
+                                SESSION=\$(smart-tests record session --build ${BUILD_NUMBER} --test-suite todo-frontend-tests ${obsFlag})
+                                echo "Smart Tests session: \$SESSION"
+                                echo "Observation mode: ${params.SMART_TESTS_OBSERVATION}"
 
-                            PYTHONPATH=. pytest tests/ \
-                                --junit-xml=test-results/results.xml \
-                                --cov=app \
-                                --cov-report=xml:test-results/coverage.xml \
-                                -v || true
+                                if [ "${params.SMART_TESTS_OBSERVATION}" = "true" ]; then
+                                    PYTHONPATH=. pytest tests/ \
+                                        --junit-xml=test-results/results.xml \
+                                        --cov=app \
+                                        --cov-report=xml:test-results/coverage.xml \
+                                        -v || true
+                                else
+                                    PYTHONPATH=. pytest tests/ --collect-only -q \
+                                        | grep '::' \
+                                        | smart-tests subset pytest \
+                                            --session \$SESSION \
+                                            --target 50% \
+                                            > subset.txt
 
-                            smart-tests record tests \
-                                --session \$SESSION \
-                                pytest test-results/results.xml
-                        """
+                                    echo "Smart Tests selected \$(wc -l < subset.txt) of 18 tests:"
+                                    cat subset.txt
+
+                                    PYTHONPATH=. pytest \$(cat subset.txt) \
+                                        --junit-xml=test-results/results.xml \
+                                        --cov=app \
+                                        --cov-report=xml:test-results/coverage.xml \
+                                        -v || true
+                                fi
+
+                                smart-tests record tests \
+                                    --session \$SESSION \
+                                    pytest test-results/results.xml
+                            """
+                        }
                     }
                 }
             }
